@@ -6,11 +6,11 @@ BINARIES=itzo-launcher
 
 TOP_DIR=$(dir $(realpath $(firstword $(MAKEFILE_LIST))))
 CMD_SRC=$(shell find $(TOP_DIR)cmd -type f -name '*.go')
-#PKG_SRC=$(shell find $(TOP_DIR)pkg -type f -name '*.go')
+PKG_SRC=$(shell find $(TOP_DIR)pkg -type f -name '*.go')
 
 all: $(BINARIES)
 
-itzo-launcher: $(CMD_SRC) go.sum
+itzo-launcher: $(CMD_SRC) $(PKG_SRC) go.sum
 	go build $(LDFLAGS) -o itzo-launcher cmd/itzo-launcher/itzo-launcher.go
 
 clean:

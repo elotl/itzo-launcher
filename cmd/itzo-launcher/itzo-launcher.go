@@ -7,32 +7,14 @@ import (
 	"net/http"
 	"os"
 	"os/exec"
+	"os/signal"
 	"path/filepath"
 	"strings"
+	"syscall"
 
+	"github.com/elotl/itzo-launcher/pkg/cloudinit"
 	"k8s.io/klog"
 )
-
-//itzo_url_file="/tmp/itzo/itzo_url"
-//itzo_url="http://itzo-download.s3.amazonaws.com"
-//if [[ -f \$itzo_url_file ]]; then
-//    itzo_url=\$(head -n 1 \$itzo_url_file)
-//fi
-//itzo_version_file="/tmp/itzo/itzo_version"
-//itzo_version="latest"
-//if [[ -f \$itzo_version_file ]]; then
-//    itzo_version=\$(head -n 1 \$itzo_version_file)
-//fi
-//itzo_full_url="\${itzo_url}/itzo-\${itzo_version}"
-//itzo_path="\${itzo_dir}/itzo"
-//rm -f \$itzo_path
-//while true; do
-//    echo "\$(date) downloading itzo from \$itzo_full_url" >> /var/log/itzo/itzo_download.log 2>&1
-//    wget --timeout=3 \$itzo_full_url -O \$itzo_path && break >> /var/log/itzo/itzo_download.log 2>&1
-//    sleep 1
-//done
-//chmod 755 \$itzo_path
-//\${itzo_dir}/itzo >> /var/log/itzo/itzo.log 2>&1
 
 const (
 	LogDir             = "/var/log/itzo"
@@ -44,28 +26,12 @@ const (
 	ItzoVersionFile    = ItzoDir + "/itzo_version"
 )
 
-func DownloadUserData() error {
-	logfile, err := os.OpenFile(
-		LogDir+"/itzo-cloud-init.log", os.O_RDWR|os.O_APPEND|os.O_CREATE, 0600)
+func ProcessUserData() error {
+	err := cloudinit.WriteFiles(ItzoURLFile, ItzoVersionFile)
 	if err != nil {
-		return fmt.Errorf("opening itzo-cloud-init logfile: %v", err)
+		return err
 	}
-	defer logfile.Close()
-	cmd := exec.Command(
-		"itzo-cloud-init",
-		"--from-metadata-service",
-		"--from-waagent",
-		"/var/lib/waagent",
-		"--from-gce-metadata",
-		"http://metadata.google.internal",
-	)
-	cmd.Stdout = logfile
-	cmd.Stderr = logfile
-	err = cmd.Run()
-	if err != nil {
-		return fmt.Errorf("starting %v: %v", cmd, err)
-	}
-	klog.V(2).Infof("%v finished", cmd)
+	klog.V(2).Infof("wrote itzo files from cloud-init")
 	return nil
 }
 
@@ -104,7 +70,7 @@ func DownloadItzo() error {
 	if err != nil {
 		return fmt.Errorf("writing to %s: %v", ItzoPath, err)
 	}
-	klog.V(2).Infof("%s saved to %s, %d bytes", itzoDownloadURL, ItzoPath, n)
+	klog.Infof("%s saved to %s, %d bytes", itzoDownloadURL, ItzoPath, n)
 	return nil
 }
 
@@ -121,21 +87,31 @@ func RunItzo() error {
 	)
 	cmd.Stdout = logfile
 	cmd.Stderr = logfile
+	klog.Infof("running %v", cmd)
 	err = cmd.Run()
 	if err != nil {
 		return fmt.Errorf("running %v: %v", cmd, err)
 	}
-	klog.V(2).Infof("%v finished", cmd)
+	klog.Warningf("%v finished", cmd)
 	return nil
 }
 
+func HandleSignal(sig chan os.Signal) {
+	s := <-sig
+	klog.Fatalf("caught signal %v, exiting", s)
+}
+
 func main() {
+	sig := make(chan os.Signal, 1)
+	signal.Notify(sig, syscall.SIGINT, syscall.SIGTERM)
+	go HandleSignal(sig)
+
 	err := os.MkdirAll(LogDir, 0755)
 	if err != nil {
 		klog.Fatalf("ensuring %s exists: %v", LogDir, err)
 	}
 
-	err = DownloadUserData()
+	err = ProcessUserData()
 	if err != nil {
 		klog.Fatalf("downloading cloud-init user data: %v", err)
 	}

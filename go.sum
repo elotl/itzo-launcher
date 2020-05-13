@@ -1,3 +1,16 @@
+github.com/cloudsigma/cepgo v0.0.0-20140805094338-1bfc4895bf5c h1:RMx9SFbDpSl/jY3InnrhG+S7lW9Yr+54Jt+G8WZWOd8=
+github.com/cloudsigma/cepgo v0.0.0-20140805094338-1bfc4895bf5c/go.mod h1:6Pooq9nOzi3YTaXMNF+0W7POfgQhIm5z8RquoPB9Sf4=
+github.com/coreos/go-systemd v0.0.0-20191104093116-d3cd4ed1dbcf h1:iW4rZ826su+pqaw19uhpSCzhj44qo35pNgKFGqzDKkU=
+github.com/coreos/go-systemd v0.0.0-20191104093116-d3cd4ed1dbcf/go.mod h1:F5haX7vjVVG0kc13fIWeqUViNPyEJxv/OmvnBo0Yme4=
+github.com/coreos/yaml v0.0.0-20141224210557-6b16a5714269 h1:/1sjrpK5Mb6IwyFOKd+u7321tXfNAsj0Ci8CivZmSlo=
+github.com/coreos/yaml v0.0.0-20141224210557-6b16a5714269/go.mod h1:Bl1D/T9QJhVdu6eFoLrGxN90+admDLGaLz2HXH/VzDc=
+github.com/dotcloud/docker v1.13.1 h1:jjwxeyQYDwROaGy/YEodF+srQW5hJAnNnaTcfcKoU+0=
+github.com/elotl/cloud-init v1.14.2 h1:MsePTg+R45gxo8Y5Rmms/XwRHh61wdvD+4MDCisw7yo=
+github.com/elotl/cloud-init v1.14.2/go.mod h1:oCbqtZwJTJn+m5kxlJPcAJ5BjOLQuDm0Tw9IzT11XL8=
 github.com/go-logr/logr v0.1.0/go.mod h1:ixOQHD9gLJUVQQ2ZOR7zLEifBX6tGkNJF4QyIY7sIas=
+github.com/godbus/dbus v4.1.0+incompatible h1:WqqLRTsQic3apZUK9qC5sGNfXthmPXzUZ7nQPrNITa4=
+github.com/godbus/dbus v4.1.0+incompatible/go.mod h1:/YcGZj5zSblfDWMMoOzV4fas9FZnQYTkDnsGvmh2Grw=
+github.com/tarm/goserial v0.0.0-20151007205400-b3440c3c6355 h1:Kp3kg8YL2dc75mckomrHZQTfzNyFGnaqFhJeQw4ozGc=
+github.com/tarm/goserial v0.0.0-20151007205400-b3440c3c6355/go.mod h1:jcMo2Odv5FpDA6rp8bnczbUolcICW6t54K3s9gOlgII=
 k8s.io/klog v1.0.0 h1:Pt+yjF5aB1xDSVbau4VsWe+dQNzA0qv1LlXdC2dF6Q8=
 k8s.io/klog v1.0.0/go.mod h1:4Bi6QPql/J/LkTDqv7R/cd3hPo4k2DG6Ptcz060Ez5I=
