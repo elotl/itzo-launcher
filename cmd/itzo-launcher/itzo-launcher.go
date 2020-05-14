@@ -27,6 +27,7 @@ const (
 )
 
 func ProcessUserData() error {
+	klog.V(2).Infof("getting itzo files from cloud-init")
 	err := cloudinit.WriteFiles(ItzoURLFile, ItzoVersionFile)
 	if err != nil {
 		return err
@@ -36,6 +37,7 @@ func ProcessUserData() error {
 }
 
 func DownloadItzo() error {
+	klog.V(2).Infof("downloading itzo")
 	itzoURL := ItzoDefaultURL
 	contents, err := ioutil.ReadFile(ItzoURLFile)
 	if err != nil && !os.IsNotExist(err) {
@@ -70,11 +72,12 @@ func DownloadItzo() error {
 	if err != nil {
 		return fmt.Errorf("writing to %s: %v", ItzoPath, err)
 	}
-	klog.Infof("%s saved to %s, %d bytes", itzoDownloadURL, ItzoPath, n)
+	klog.V(2).Infof("%s saved to %s, %d bytes", itzoDownloadURL, ItzoPath, n)
 	return nil
 }
 
 func RunItzo() error {
+	klog.V(2).Infof("starting itzo")
 	logfile, err := os.OpenFile(
 		LogDir+"/itzo.log", os.O_RDWR|os.O_APPEND|os.O_CREATE, 0600)
 	if err != nil {
@@ -92,7 +95,7 @@ func RunItzo() error {
 	if err != nil {
 		return fmt.Errorf("running %v: %v", cmd, err)
 	}
-	klog.Warningf("%v finished", cmd)
+	klog.Warningf("%v exited", cmd)
 	return nil
 }
 
@@ -102,6 +105,8 @@ func HandleSignal(sig chan os.Signal) {
 }
 
 func main() {
+	klog.Infof("starting up")
+
 	sig := make(chan os.Signal, 1)
 	signal.Notify(sig, syscall.SIGINT, syscall.SIGTERM)
 	go HandleSignal(sig)
@@ -125,4 +130,6 @@ func main() {
 	if err != nil {
 		klog.Fatalf("running itzo: %v", err)
 	}
+
+	klog.Infof("exiting")
 }
