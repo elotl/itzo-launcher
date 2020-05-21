@@ -1,4 +1,4 @@
-package nfs
+package addons
 
 import (
 	"fmt"
@@ -7,11 +7,9 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
-
-	"github.com/elotl/itzo-launcher/pkg/addons"
 )
 
-const (
+var (
 	ImageDir     = "/tmp/tosi"
 	ImageSubDirs = [4]string{"configs", "manifests", "layers", "overlays"}
 )
@@ -21,7 +19,7 @@ type NFSAddon struct {
 }
 
 func init() {
-	addons.Registry["nfs"] = &NFSAddon{}
+	Registry["nfs"] = &NFSAddon{}
 }
 
 func (n *NFSAddon) createLinks() error {
@@ -42,17 +40,18 @@ func (n *NFSAddon) createLinks() error {
 		}
 		for _, fi := range fis {
 			name := fi.Name()
-			if len(name) > 0 && name[0] == "." {
+			if len(name) > 0 && name[0] == '.' {
 				continue
 			}
 			oldName := filepath.Join(src, name)
-			newName := filepath.Join(dst, name)
+			newName := filepath.Join(dest, name)
 			err = os.Symlink(oldName, newName)
 			if err != nil {
 				return err
 			}
 		}
 	}
+	return nil
 }
 
 func (n *NFSAddon) Run(config map[string]string) (string, error) {
@@ -79,8 +78,9 @@ func (n *NFSAddon) Run(config map[string]string) (string, error) {
 	}
 	args = append(args, opts...)
 	args = append(args, mountDir)
-	cmd := exec.Command(args...)
-	output, err := cmd.CombinedOutput()
+	cmd := exec.Command("mount", args...)
+	buf, err := cmd.CombinedOutput()
+	output := string(buf)
 	if err != nil {
 		return output, err
 	}
