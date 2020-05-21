@@ -13,7 +13,7 @@ import (
 
 var (
 	ImageDir     = "/tmp/tosi"
-	ImageSubDirs = [4]string{"configs", "manifests", "layers", "overlays"}
+	ImageSubDirs = [2]string{"layers", "overlays"}
 )
 
 type NFSAddon struct {
