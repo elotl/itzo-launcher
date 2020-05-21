@@ -54,7 +54,7 @@ func (n *NFSAddon) createLinks() error {
 	return nil
 }
 
-func (n *NFSAddon) Run(config map[string]string) (string, error) {
+func (n *NFSAddon) Run(config map[string]string) error {
 	endpoint := ""
 	mountDir := "/nfs"
 	mountOpts := "-o ro"
@@ -68,7 +68,11 @@ func (n *NFSAddon) Run(config map[string]string) (string, error) {
 		}
 	}
 	if endpoint == "" {
-		return "", nil
+		return nil
+	}
+	err := os.MkdirAll(endpoint, 0755)
+	if err != nil {
+		return nil
 	}
 	n.endpoint = endpoint
 	opts := strings.Fields(mountOpts)
@@ -80,13 +84,13 @@ func (n *NFSAddon) Run(config map[string]string) (string, error) {
 	args = append(args, mountDir)
 	cmd := exec.Command("mount", args...)
 	buf, err := cmd.CombinedOutput()
-	output := string(buf)
 	if err != nil {
-		return output, err
+		return fmt.Errorf(
+			"mounting %s: %v, output:\n%s", endpoint, err, string(buf))
 	}
 	err = n.createLinks()
 	if err != nil {
-		return "", fmt.Errorf("creating links: %v", err)
+		return fmt.Errorf("creating links: %v", err)
 	}
-	return output, nil
+	return nil
 }

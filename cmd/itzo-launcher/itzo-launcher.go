@@ -118,12 +118,12 @@ func RunAddons() error {
 	klog.Infof("found %d addon(s)", len(addons.Registry))
 	for name, addon := range addons.Registry {
 		klog.Infof("running addon %s", name)
-		output, err := addon.Run(config)
+		err := addon.Run(config)
 		if err != nil {
 			errs = multierror.Append(errs, err)
-			klog.Errorf("running %s: %v; output:\n%s", name, err, output)
+			klog.Errorf("running %s: %v", name, err)
 		} else {
-			klog.V(2).Infof("running %s success, output:\n%s", name, output)
+			klog.V(2).Infof("running %s: success", name)
 		}
 	}
 	return errs
