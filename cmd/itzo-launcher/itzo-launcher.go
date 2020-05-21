@@ -12,7 +12,10 @@ import (
 	"strings"
 	"syscall"
 
+	"github.com/elotl/itzo-launcher/pkg/addons"
 	"github.com/elotl/itzo-launcher/pkg/cloudinit"
+	"github.com/go-yaml/yaml"
+	"github.com/hashicorp/go-multierror"
 	"k8s.io/klog"
 )
 
@@ -24,11 +27,12 @@ const (
 	ItzoDefaultVersion = "latest"
 	ItzoURLFile        = ItzoDir + "/itzo_url"
 	ItzoVersionFile    = ItzoDir + "/itzo_version"
+	CellConfigFile     = ItzoDir + "/cell_config.yaml"
 )
 
 func ProcessUserData() error {
 	klog.V(2).Infof("getting itzo files from cloud-init")
-	err := cloudinit.WriteFiles(ItzoURLFile, ItzoVersionFile)
+	err := cloudinit.WriteFiles(ItzoURLFile, ItzoVersionFile, CellConfigFile)
 	if err != nil {
 		return err
 	}
@@ -99,6 +103,31 @@ func RunItzo() error {
 	return nil
 }
 
+func RunAddons() error {
+	config := make(map[string]string)
+	contents, err := ioutil.ReadFile(CellConfigFile)
+	if err != nil {
+		klog.Warningf("reading %s: %v", CellConfigFile, err)
+	} else {
+		err = yaml.Unmarshal(contents, &config)
+		if err != nil {
+			klog.Warningf("unmarshaling config %s: %v", contents, err)
+		}
+	}
+	var errs error
+	for name, addon := range addons.Registry {
+		klog.Infof("running addon %s", name)
+		output, err := addon.Run(config)
+		if err != nil {
+			errs = multierror.Append(errs, err)
+			klog.Errorf("running %s: %v; output:\n%s", name, err, output)
+		} else {
+			klog.V(2).Infof("running %s success, output:\n%s", name, output)
+		}
+	}
+	return errs
+}
+
 func HandleSignal(sig chan os.Signal) {
 	s := <-sig
 	klog.Fatalf("caught signal %v, exiting", s)
@@ -119,6 +148,11 @@ func main() {
 	err = ProcessUserData()
 	if err != nil {
 		klog.Fatalf("downloading cloud-init user data: %v", err)
+	}
+
+	err = RunAddons()
+	if err != nil {
+		klog.Fatalf("running addons: %v", err)
 	}
 
 	err = DownloadItzo()
