@@ -22,14 +22,14 @@ func init() {
 	Registry["nfs"] = &NFSAddon{}
 }
 
-func (n *NFSAddon) createLinks() error {
+func (n *NFSAddon) createLinks(mountDir string) error {
 	for _, subdir := range ImageSubDirs {
 		dest := filepath.Join(ImageDir, subdir)
 		err := os.MkdirAll(dest, 0755)
 		if err != nil {
 			return nil
 		}
-		src := filepath.Join(n.endpoint, subdir)
+		src := filepath.Join(mountDir, subdir)
 		err = os.MkdirAll(src, 0755)
 		if err != nil {
 			return nil
@@ -89,7 +89,7 @@ func (n *NFSAddon) Run(config map[string]string) error {
 		return fmt.Errorf(
 			"mounting %s: %v, output:\n%s", endpoint, err, string(buf))
 	}
-	err = n.createLinks()
+	err = n.createLinks(mountDir)
 	if err != nil {
 		return fmt.Errorf("creating links: %v", err)
 	}
