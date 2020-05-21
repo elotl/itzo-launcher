@@ -7,6 +7,8 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
+
+	"k8s.io/klog"
 )
 
 var (
@@ -23,7 +25,9 @@ func init() {
 }
 
 func (n *NFSAddon) createLinks(mountDir string) error {
+	klog.V(5).Infof("mount dir %s, %d subdirs", mountDir, len(ImageSubDirs))
 	for _, subdir := range ImageSubDirs {
+		klog.V(5).Infof("checking subdir %s", subdir)
 		dest := filepath.Join(ImageDir, subdir)
 		err := os.MkdirAll(dest, 0755)
 		if err != nil {
@@ -34,17 +38,20 @@ func (n *NFSAddon) createLinks(mountDir string) error {
 		if err != nil {
 			return nil
 		}
+		klog.V(5).Infof("subdir %s -> %s", src, dest)
 		fis, err := ioutil.ReadDir(src)
 		if err != nil {
 			return nil
 		}
 		for _, fi := range fis {
 			name := fi.Name()
+			klog.V(5).Infof("found %s in %s", name, subdir)
 			if len(name) > 0 && name[0] == '.' {
 				continue
 			}
 			oldName := filepath.Join(src, name)
 			newName := filepath.Join(dest, name)
+			klog.V(5).Infof("linking %s -> %s", oldName, newName)
 			err = os.Symlink(oldName, newName)
 			if err != nil {
 				return err

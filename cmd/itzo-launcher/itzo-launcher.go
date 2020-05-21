@@ -1,6 +1,7 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -135,6 +136,9 @@ func HandleSignal(sig chan os.Signal) {
 }
 
 func main() {
+	klog.InitFlags(nil)
+	flag.Parse()
+
 	klog.Infof("starting up")
 
 	sig := make(chan os.Signal, 1)
