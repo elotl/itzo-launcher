@@ -71,7 +71,7 @@ func (n *NFSAddon) Run(config map[string]string) error {
 		return nil
 	}
 	n.endpoint = endpoint
-	err := os.MkdirAll(endpoint, 0755)
+	err := os.MkdirAll(mountDir, 0755)
 	if err != nil {
 		return nil
 	}
