@@ -70,15 +70,16 @@ func (n *NFSAddon) Run(config map[string]string) error {
 	if endpoint == "" {
 		return nil
 	}
+	n.endpoint = endpoint
 	err := os.MkdirAll(endpoint, 0755)
 	if err != nil {
 		return nil
 	}
-	n.endpoint = endpoint
 	opts := strings.Fields(mountOpts)
 	args := []string{
 		"-t",
 		"nfs",
+		endpoint,
 	}
 	args = append(args, opts...)
 	args = append(args, mountDir)
