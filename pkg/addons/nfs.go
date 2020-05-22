@@ -4,10 +4,9 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
-	"os/exec"
 	"path/filepath"
-	"strings"
 
+	"github.com/elotl/itzo-launcher/pkg/mount"
 	"k8s.io/klog"
 )
 
@@ -17,11 +16,14 @@ var (
 )
 
 type NFSAddon struct {
+	mounter  mount.Mounter
 	endpoint string
 }
 
 func init() {
-	Registry["nfs"] = &NFSAddon{}
+	Registry["nfs"] = &NFSAddon{
+		mounter: mount.NewOSMounter(),
+	}
 }
 
 func (n *NFSAddon) createLinks(mountDir string) error {
@@ -77,24 +79,25 @@ func (n *NFSAddon) Run(config map[string]string) error {
 	if endpoint == "" {
 		return nil
 	}
+	mounts, err := n.mounter.Mounts()
+	if err != nil {
+		return fmt.Errorf("listing mounts: %v", err)
+	}
+	for _, m := range mounts {
+		if m.Device == endpoint {
+			klog.V(2).Infof("%+v is already mounted", m)
+			// Already mounted.
+			return nil
+		}
+	}
 	n.endpoint = endpoint
-	err := os.MkdirAll(mountDir, 0755)
+	err = os.MkdirAll(mountDir, 0755)
 	if err != nil {
-		return nil
+		return fmt.Errorf("creating mountpoint %s: %v", mountDir, err)
 	}
-	opts := strings.Fields(mountOpts)
-	args := []string{
-		"-t",
-		"nfs",
-		endpoint,
-	}
-	args = append(args, opts...)
-	args = append(args, mountDir)
-	cmd := exec.Command("mount", args...)
-	buf, err := cmd.CombinedOutput()
+	err = n.mounter.Mount(endpoint, mountDir, "nfs", mountOpts)
 	if err != nil {
-		return fmt.Errorf(
-			"mounting %s: %v, output:\n%s", endpoint, err, string(buf))
+		return fmt.Errorf("mounting NFS: %v", err)
 	}
 	err = n.createLinks(mountDir)
 	if err != nil {
