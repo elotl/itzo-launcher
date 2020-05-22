@@ -12,10 +12,13 @@ Itzo-launcher should be used via systemd or some other service manager. Example 
     [Unit]
     Description=Itzo launcher
     After=network.target
+    StartLimitIntervalSec=0
     
     [Service]
     Type=simple
-    ExecStart=/usr/bin/itzo-launcher
+    Restart=on-failure
+    RestartSec=3s
+    ExecStart=/usr/bin/itzo-launcher --v=5
     
     [Install]
     WantedBy=multi-user.target
