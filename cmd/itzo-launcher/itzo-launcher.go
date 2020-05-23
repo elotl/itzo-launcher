@@ -27,6 +27,7 @@ const (
 	LogDir              = "/var/log/itzo"
 	ItzoDir             = "/tmp/itzo"
 	ItzoPath            = "/usr/local/bin/itzo"
+	ItzoPathTmp         = "/usr/local/bin/.itzo.part"
 	ItzoDefaultURL      = "https://itzo-kip-download.s3.amazonaws.com"
 	ItzoDefaultVersion  = "latest"
 	ItzoURLFile         = ItzoDir + "/itzo_url"
@@ -79,9 +80,9 @@ func DownloadItzo() error {
 	if err != nil {
 		return fmt.Errorf("ensuring %s exists: %v", binDir, err)
 	}
-	out, err := os.OpenFile(ItzoPath, os.O_WRONLY|os.O_CREATE, 0755)
+	out, err := os.OpenFile(ItzoPathTmp, os.O_WRONLY|os.O_CREATE, 0755)
 	if err != nil {
-		return fmt.Errorf("opening %s: %v", ItzoPath, err)
+		return fmt.Errorf("opening %s: %v", ItzoPathTmp, err)
 	}
 	defer out.Close()
 	var resp *http.Response
@@ -99,6 +100,10 @@ func DownloadItzo() error {
 	}
 	defer resp.Body.Close()
 	n, err := io.Copy(out, resp.Body)
+	if err != nil {
+		return fmt.Errorf("writing to %s: %v", ItzoPathTmp, err)
+	}
+	err = os.Rename(ItzoPathTmp, ItzoPath)
 	if err != nil {
 		return fmt.Errorf("writing to %s: %v", ItzoPath, err)
 	}
