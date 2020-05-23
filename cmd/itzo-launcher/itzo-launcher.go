@@ -15,7 +15,6 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/avast/retry-go"
 	"github.com/elotl/itzo-launcher/pkg/addons"
 	"github.com/elotl/itzo-launcher/pkg/cloudinit"
 	"github.com/go-yaml/yaml"
@@ -85,16 +84,7 @@ func DownloadItzo() error {
 		return fmt.Errorf("opening %s: %v", ItzoPathTmp, err)
 	}
 	defer out.Close()
-	var resp *http.Response
-	err = retry.Do(
-		func() error {
-			resp, err = downloadItzo(itzoDownloadURL, ItzoDownloadTimeout)
-			return err
-		},
-		retry.Attempts(10),
-		retry.Delay(1*time.Second),
-		retry.MaxJitter(1*time.Second),
-	)
+	resp, err := downloadItzo(itzoDownloadURL, ItzoDownloadTimeout)
 	if err != nil {
 		return fmt.Errorf("downloading %s: %v", itzoDownloadURL, err)
 	}
