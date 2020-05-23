@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"net"
 	"net/http"
 	"os"
 	"os/exec"
@@ -12,7 +13,9 @@ import (
 	"path/filepath"
 	"strings"
 	"syscall"
+	"time"
 
+	"github.com/avast/retry-go"
 	"github.com/elotl/itzo-launcher/pkg/addons"
 	"github.com/elotl/itzo-launcher/pkg/cloudinit"
 	"github.com/go-yaml/yaml"
@@ -21,14 +24,15 @@ import (
 )
 
 const (
-	LogDir             = "/var/log/itzo"
-	ItzoDir            = "/tmp/itzo"
-	ItzoPath           = "/usr/local/bin/itzo"
-	ItzoDefaultURL     = "https://itzo-kip-download.s3.amazonaws.com"
-	ItzoDefaultVersion = "latest"
-	ItzoURLFile        = ItzoDir + "/itzo_url"
-	ItzoVersionFile    = ItzoDir + "/itzo_version"
-	CellConfigFile     = ItzoDir + "/cell_config.yaml"
+	LogDir              = "/var/log/itzo"
+	ItzoDir             = "/tmp/itzo"
+	ItzoPath            = "/usr/local/bin/itzo"
+	ItzoDefaultURL      = "https://itzo-kip-download.s3.amazonaws.com"
+	ItzoDefaultVersion  = "latest"
+	ItzoURLFile         = ItzoDir + "/itzo_url"
+	ItzoVersionFile     = ItzoDir + "/itzo_version"
+	ItzoDownloadTimeout = time.Duration(2 * time.Second)
+	CellConfigFile      = ItzoDir + "/cell_config.yaml"
 )
 
 func ProcessUserData() error {
@@ -39,6 +43,18 @@ func ProcessUserData() error {
 	}
 	klog.V(2).Infof("wrote itzo files from cloud-init")
 	return nil
+}
+
+func downloadItzo(url string, timeout time.Duration) (*http.Response, error) {
+	transport := http.Transport{
+		Dial: func(network, addr string) (net.Conn, error) {
+			return net.DialTimeout(network, addr, timeout)
+		},
+	}
+	client := http.Client{
+		Transport: &transport,
+	}
+	return client.Get(url)
 }
 
 func DownloadItzo() error {
@@ -68,7 +84,16 @@ func DownloadItzo() error {
 		return fmt.Errorf("opening %s: %v", ItzoPath, err)
 	}
 	defer out.Close()
-	resp, err := http.Get(itzoDownloadURL)
+	var resp *http.Response
+	err = retry.Do(
+		func() error {
+			resp, err = downloadItzo(itzoDownloadURL, ItzoDownloadTimeout)
+			return err
+		},
+		retry.Attempts(10),
+		retry.Delay(1*time.Second),
+		retry.MaxJitter(1*time.Second),
+	)
 	if err != nil {
 		return fmt.Errorf("downloading %s: %v", itzoDownloadURL, err)
 	}

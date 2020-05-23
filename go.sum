@@ -1,3 +1,5 @@
+github.com/avast/retry-go v2.6.0+incompatible h1:FelcMrm7Bxacr1/RM8+/eqkDkmVN7tjlsy51dOzB3LI=
+github.com/avast/retry-go v2.6.0+incompatible/go.mod h1:XtSnn+n/sHqQIpZ10K1qAevBhOOCWBLXXy3hyiqqBrY=
 github.com/cloudsigma/cepgo v0.0.0-20140805094338-1bfc4895bf5c h1:RMx9SFbDpSl/jY3InnrhG+S7lW9Yr+54Jt+G8WZWOd8=
 github.com/cloudsigma/cepgo v0.0.0-20140805094338-1bfc4895bf5c/go.mod h1:6Pooq9nOzi3YTaXMNF+0W7POfgQhIm5z8RquoPB9Sf4=
 github.com/coreos/go-systemd v0.0.0-20191104093116-d3cd4ed1dbcf h1:iW4rZ826su+pqaw19uhpSCzhj44qo35pNgKFGqzDKkU=
