@@ -177,7 +177,7 @@ func main() {
 
 	err = RunAddons()
 	if err != nil {
-		klog.Fatalf("running addons: %v", err)
+		klog.Warningf("running addons: %v", err)
 	}
 
 	err = DownloadItzo()
