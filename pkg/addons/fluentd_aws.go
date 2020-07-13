@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"time"
 
 	"github.com/aws/aws-sdk-go/aws/ec2metadata"
 	"github.com/aws/aws-sdk-go/aws/session"
@@ -23,12 +24,12 @@ func init() {
 }
 
 func autoDetectRegion() string {
-	session, err := session.NewSession()
+	sess, err := session.NewSession()
 	if err != nil {
 		klog.Warningf("creating session to autodetect AWS region: %v", err)
 		return ""
 	}
-	client := ec2metadata.New(session)
+	client := ec2metadata.New(sess)
 	region, err := client.Region()
 	if err != nil {
 		klog.Warningf("trying to autodetect AWS region: %v", err)
@@ -64,6 +65,26 @@ func restartUnit() error {
 	return nil
 }
 
+func waitForIAMRole() {
+	for {
+		time.Sleep(3)
+		klog.V(2).Infof("checking if IAM role for fluentd is now available")
+		sess, err := session.NewSession()
+		if err != nil {
+			klog.Warningf("creating AWS session for checking credentials: %v", err)
+			continue
+		}
+		client := ec2metadata.New(sess)
+		content, err := client.GetMetadata("iam/security-credentials")
+		if err != nil || len(content) < 1 {
+			continue
+		}
+		klog.V(2).Infof("found IAM role for fluentd %q", content)
+		restartUnit()
+		return
+	}
+}
+
 func (f *FluentdAWSAddon) Run(config map[string]string) error {
 	clusterName := ""
 	region := ""
@@ -90,5 +111,10 @@ func (f *FluentdAWSAddon) Run(config map[string]string) error {
 		klog.Errorf("%v", err)
 		return err
 	}
+	// The IAM role for fluentd only gets attached after pod dispatch, but the
+	// AWS library the cloudwatch plugin uses only checks the role at startup.
+	// To ensure credentials are configured for the plugin, we'll need to
+	// restart fluentd after the role has been attached to the instance.
+	go waitForIAMRole()
 	return nil
 }
