@@ -67,7 +67,7 @@ func restartUnit() error {
 
 func waitForIAMRole() {
 	for {
-		time.Sleep(3)
+		time.Sleep(3 * time.Second)
 		klog.V(2).Infof("checking if IAM role for fluentd is now available")
 		sess, err := session.NewSession()
 		if err != nil {
