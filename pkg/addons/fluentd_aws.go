@@ -3,7 +3,6 @@ package addons
 import (
 	"fmt"
 	"os"
-	"os/exec"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws/ec2metadata"
@@ -12,7 +11,8 @@ import (
 )
 
 const (
-	FluentdVariablesFile = "/etc/default/td-agent"
+	FluentdVariablesFile   = "/etc/default/td-agent"
+	FluentdSystemdUnitName = "td-agent"
 )
 
 // This add-on configures fluentd on AWS to send logs to CloudWatch.
@@ -56,15 +56,6 @@ func configureVariables(clusterName, region string) error {
 	return nil
 }
 
-func restartUnit() error {
-	cmd := exec.Command("systemctl", "restart", "td-agent")
-	output, err := cmd.CombinedOutput()
-	if err != nil {
-		return fmt.Errorf("restarting fluentd: %v; output:\n%s", err, output)
-	}
-	return nil
-}
-
 func waitForIAMRole() {
 	for {
 		time.Sleep(3 * time.Second)
@@ -80,7 +71,7 @@ func waitForIAMRole() {
 			continue
 		}
 		klog.V(2).Infof("found IAM role for fluentd %q", content)
-		restartUnit()
+		manageUnit(unitRestart, FluentdSystemdUnitName)
 		return
 	}
 }
@@ -106,7 +97,7 @@ func (f *FluentdAWSAddon) Run(config map[string]string) error {
 		klog.Errorf("%v", err)
 		return err
 	}
-	err = restartUnit()
+	err = manageUnit(unitStop, FluentdSystemdUnitName)
 	if err != nil {
 		klog.Errorf("%v", err)
 		return err
