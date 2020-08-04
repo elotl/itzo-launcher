@@ -3,36 +3,30 @@ package main
 import (
 	"flag"
 	"fmt"
-	"io"
 	"io/ioutil"
-	"net"
-	"net/http"
 	"os"
 	"os/exec"
 	"os/signal"
-	"path/filepath"
 	"strings"
 	"syscall"
-	"time"
 
 	"github.com/elotl/itzo-launcher/pkg/addons"
 	"github.com/elotl/itzo-launcher/pkg/cloudinit"
+	"github.com/elotl/itzo-launcher/pkg/util"
 	"github.com/go-yaml/yaml"
 	"github.com/hashicorp/go-multierror"
 	"k8s.io/klog"
 )
 
 const (
-	LogDir              = "/var/log/itzo"
-	ItzoDir             = "/tmp/itzo"
-	ItzoPath            = "/usr/local/bin/itzo"
-	ItzoPathTmp         = "/usr/local/bin/.itzo.part"
-	ItzoDefaultURL      = "https://itzo-kip-download.s3.amazonaws.com"
-	ItzoDefaultVersion  = "latest"
-	ItzoURLFile         = ItzoDir + "/itzo_url"
-	ItzoVersionFile     = ItzoDir + "/itzo_version"
-	ItzoDownloadTimeout = time.Duration(2 * time.Second)
-	CellConfigFile      = ItzoDir + "/cell_config.yaml"
+	LogDir             = "/var/log/itzo"
+	ItzoDir            = "/tmp/itzo"
+	ItzoDefaultPath    = "/usr/local/bin/itzo"
+	ItzoDefaultURL     = "https://itzo-kip-download.s3.amazonaws.com"
+	ItzoDefaultVersion = "latest"
+	ItzoURLFile        = ItzoDir + "/itzo_url"
+	ItzoVersionFile    = ItzoDir + "/itzo_version"
+	CellConfigFile     = ItzoDir + "/cell_config.yaml"
 )
 
 func ProcessUserData() error {
@@ -45,19 +39,7 @@ func ProcessUserData() error {
 	return nil
 }
 
-func downloadItzo(url string, timeout time.Duration) (*http.Response, error) {
-	transport := http.Transport{
-		Dial: func(network, addr string) (net.Conn, error) {
-			return net.DialTimeout(network, addr, timeout)
-		},
-	}
-	client := http.Client{
-		Transport: &transport,
-	}
-	return client.Get(url)
-}
-
-func DownloadItzo() error {
+func EnsureItzo() (string, error) {
 	klog.V(2).Infof("downloading itzo")
 	itzoURL := ItzoDefaultURL
 	contents, err := ioutil.ReadFile(ItzoURLFile)
@@ -74,34 +56,16 @@ func DownloadItzo() error {
 		itzoVersion = strings.TrimSpace(string(contents))
 	}
 	itzoDownloadURL := fmt.Sprintf("%s/itzo-%s", itzoURL, itzoVersion)
-	binDir := filepath.Dir(ItzoPath)
-	err = os.MkdirAll(binDir, 0755)
+	itzoPath, err := util.EnsureProg(ItzoDefaultPath, itzoDownloadURL, itzoVersion, "--version")
 	if err != nil {
-		return fmt.Errorf("ensuring %s exists: %v", binDir, err)
+		klog.Errorf("ensuring itzo version %q: %v", itzoVersion, err)
+		return "", err
 	}
-	out, err := os.OpenFile(ItzoPathTmp, os.O_WRONLY|os.O_CREATE, 0755)
-	if err != nil {
-		return fmt.Errorf("opening %s: %v", ItzoPathTmp, err)
-	}
-	defer out.Close()
-	resp, err := downloadItzo(itzoDownloadURL, ItzoDownloadTimeout)
-	if err != nil {
-		return fmt.Errorf("downloading %s: %v", itzoDownloadURL, err)
-	}
-	defer resp.Body.Close()
-	n, err := io.Copy(out, resp.Body)
-	if err != nil {
-		return fmt.Errorf("writing to %s: %v", ItzoPathTmp, err)
-	}
-	err = os.Rename(ItzoPathTmp, ItzoPath)
-	if err != nil {
-		return fmt.Errorf("writing to %s: %v", ItzoPath, err)
-	}
-	klog.V(2).Infof("%s saved to %s, %d bytes", itzoDownloadURL, ItzoPath, n)
-	return nil
+	klog.V(2).Infof("itzo version %q is at %s", itzoVersion, itzoPath)
+	return itzoPath, nil
 }
 
-func RunItzo() error {
+func RunItzo(itzoPath string) error {
 	klog.V(2).Infof("starting itzo")
 	logfile, err := os.OpenFile(
 		LogDir+"/itzo.log", os.O_RDWR|os.O_APPEND|os.O_CREATE, 0600)
@@ -110,7 +74,7 @@ func RunItzo() error {
 	}
 	defer logfile.Close()
 	cmd := exec.Command(
-		ItzoPath,
+		itzoPath,
 		"--v=5",
 	)
 	cmd.Stdout = logfile
@@ -180,14 +144,14 @@ func main() {
 		klog.Warningf("running addons: %v", err)
 	}
 
-	err = DownloadItzo()
+	itzoPath, err := EnsureItzo()
 	if err != nil {
 		klog.Fatalf("downloading itzo: %v", err)
 	}
 
-	err = RunItzo()
+	err = RunItzo(itzoPath)
 	if err != nil {
-		klog.Fatalf("running itzo: %v", err)
+		klog.Fatalf("running %q: %v", itzoPath, err)
 	}
 
 	klog.Infof("exiting")
