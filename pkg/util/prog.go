@@ -28,8 +28,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/golang/glog"
 	"golang.org/x/mod/semver"
+	"k8s.io/klog"
 )
 
 const (
@@ -47,7 +47,7 @@ func versionMatch(exe, minVersion, versionArg string) bool {
 	cmd := exec.Command(exe, versionArg)
 	output, err := cmd.CombinedOutput()
 	if err != nil {
-		glog.V(2).Infof("%q error getting version: %v", exe, err)
+		klog.V(2).Infof("%q error getting version: %v", exe, err)
 		return false
 	}
 	version := ""
@@ -57,13 +57,13 @@ func versionMatch(exe, minVersion, versionArg string) bool {
 			word = strings.TrimRight(word, ",;.")
 			if semverRegex.Match([]byte(word)) {
 				version = word
-				glog.V(2).Infof("%q found version %q (minimum requested: %q)",
+				klog.V(2).Infof("%q found version %q (minimum requested: %q)",
 					exe, version, minVersion)
 				return semver.Compare(version, minVersion) >= 0
 			}
 		}
 	}
-	glog.V(2).Infof("%q not found version in output %q", exe, output)
+	klog.V(2).Infof("%q not found version in output %q", exe, output)
 	return false
 }
 
@@ -87,7 +87,7 @@ func EnsureProg(prog, downloadURL, minVersion, versionArg string) (string, error
 	exe, err := exec.LookPath(progBase)
 	if err == nil {
 		found := versionMatch(exe, minVersion, versionArg)
-		glog.V(5).Infof("looking for %s %s: found %v", exe, minVersion, found)
+		klog.V(5).Infof("looking for %s %s: found %v", exe, minVersion, found)
 		if found {
 			return exe, nil
 		}
