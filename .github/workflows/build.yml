@@ -20,6 +20,7 @@ jobs:
     - name: Run tests
       run: |
         go test ./...
+        ./itzo-launcher --version
     - name: Create release
       if: startsWith(github.event.ref, 'refs/tags/v')
       id: create_release
