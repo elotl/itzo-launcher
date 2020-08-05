@@ -56,12 +56,21 @@ func EnsureItzo() (string, error) {
 		itzoVersion = strings.TrimSpace(string(contents))
 	}
 	itzoDownloadURL := fmt.Sprintf("%s/itzo-%s", itzoURL, itzoVersion)
-	itzoPath, err := util.EnsureProg(ItzoDefaultPath, itzoDownloadURL, itzoVersion, "--version")
-	if err != nil {
-		klog.Errorf("ensuring itzo version %q: %v", itzoVersion, err)
-		return "", err
+	itzoPath := ItzoDefaultPath
+	if itzoVersion != ItzoDefaultVersion {
+		itzoPath, err = util.EnsureProg(ItzoDefaultPath, itzoDownloadURL, itzoVersion, "--version")
+		if err != nil {
+			klog.Errorf("ensuring itzo version %q: %v", itzoVersion, err)
+			return "", err
+		}
+	} else {
+		err = util.InstallProg(itzoDownloadURL, ItzoDefaultPath)
+		if err != nil {
+			klog.Errorf("downloading itzo version %q: %v", itzoVersion, err)
+			return "", err
+		}
 	}
-	klog.V(2).Infof("itzo version %q is at %s", itzoVersion, itzoPath)
+	klog.V(2).Infof("using itzo version %q at %s", itzoVersion, itzoPath)
 	return itzoPath, nil
 }
 

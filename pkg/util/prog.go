@@ -44,6 +44,13 @@ var (
 )
 
 func versionMatch(exe, minVersion, versionArg string) bool {
+	if !semverRegex.Match([]byte(minVersion)) {
+		klog.Warningf("invalid minimum version requested %q", minVersion)
+		return false
+	}
+	if minVersion[0] != 'v' {
+		minVersion = "v" + minVersion
+	}
 	cmd := exec.Command(exe, versionArg)
 	output, err := cmd.CombinedOutput()
 	if err != nil {
@@ -57,8 +64,15 @@ func versionMatch(exe, minVersion, versionArg string) bool {
 			word = strings.TrimRight(word, ",;.")
 			if semverRegex.Match([]byte(word)) {
 				version = word
-				klog.V(2).Infof("%q found version %q (minimum requested: %q)",
-					exe, version, minVersion)
+				klog.V(2).Infof("%q found version %q (minimum requested: %q)", exe, version, minVersion)
+				if version[0] != 'v' {
+					version = "v" + version
+				}
+				// Version reporting in itzo is broken: it reports its build
+				// hash as part of the prelease version.
+				if !strings.Contains(minVersion, "-") {
+					version = strings.Split(version, "-")[0]
+				}
 				return semver.Compare(version, minVersion) >= 0
 			}
 		}
@@ -132,5 +146,6 @@ func InstallProg(url, path string) error {
 	if err != nil {
 		return fmt.Errorf("renaming %s to %s: %+v", tmpPath, path, err)
 	}
+	klog.V(2).Infof("downloaded %s from %s", path, url)
 	return nil
 }
