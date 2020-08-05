@@ -7,6 +7,7 @@ import (
 	"os"
 	"os/exec"
 	"os/signal"
+	"path/filepath"
 	"strings"
 	"syscall"
 
@@ -27,6 +28,15 @@ const (
 	ItzoURLFile        = ItzoDir + "/itzo_url"
 	ItzoVersionFile    = ItzoDir + "/itzo_version"
 	CellConfigFile     = ItzoDir + "/cell_config.yaml"
+)
+
+var (
+	BuildVersion = "N/A"
+	BuildTime    = "N/A"
+)
+
+var (
+	version = flag.Bool("version", false, "print version and exit")
 )
 
 func ProcessUserData() error {
@@ -131,6 +141,11 @@ func HandleSignal(sig chan os.Signal) {
 func main() {
 	klog.InitFlags(nil)
 	flag.Parse()
+
+	if *version {
+		fmt.Printf("%s version %s built on %s\n", filepath.Base(os.Args[0]), BuildVersion, BuildTime)
+		os.Exit(0)
+	}
 
 	klog.Infof("starting up")
 

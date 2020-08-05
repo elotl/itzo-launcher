@@ -1,6 +1,10 @@
 GIT_VERSION=$(shell git describe --dirty || echo dev)
 
-LDFLAGS=-ldflags "-X main.VERSION=$(GIT_VERSION)"
+GIT_VERSION=$(shell git describe --dirty)
+CURRENT_TIME=$(shell date +%Y%m%d%H%M%S)
+
+LD_VERSION_FLAGS=-X main.BuildVersion=$(GIT_VERSION) -X main.BuildTime=$(CURRENT_TIME)
+LDFLAGS=-ldflags "$(LD_VERSION_FLAGS)"
 
 BINARIES=itzo-launcher
 
