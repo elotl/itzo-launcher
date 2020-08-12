@@ -65,6 +65,12 @@ func EnsureItzo() (string, error) {
 	} else {
 		itzoVersion = strings.TrimSpace(string(contents))
 	}
+	if itzoVersion == "" {
+		// Set it to 0.0.0, so if itzo is already installed, it will be used,
+		// whatever version it is.
+		itzoVersion = "0.0.0"
+		klog.Warningf("empty itzo version, using %q", itzoVersion)
+	}
 	itzoDownloadURL := fmt.Sprintf("%s/itzo-%s", itzoURL, itzoVersion)
 	itzoPath := ItzoDefaultPath
 	if itzoVersion != ItzoDefaultVersion {
@@ -80,7 +86,7 @@ func EnsureItzo() (string, error) {
 			return "", err
 		}
 	}
-	klog.V(2).Infof("using itzo version %q at %s", itzoVersion, itzoPath)
+	klog.V(2).Infof("itzo is installed at %s", itzoPath)
 	return itzoPath, nil
 }
 
