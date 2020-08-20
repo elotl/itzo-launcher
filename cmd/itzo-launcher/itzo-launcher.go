@@ -53,15 +53,23 @@ func EnsureItzo() (string, error) {
 	klog.V(2).Infof("downloading itzo")
 	itzoURL := ItzoDefaultURL
 	contents, err := ioutil.ReadFile(ItzoURLFile)
-	if err != nil && !os.IsNotExist(err) {
+	if err != nil && os.IsNotExist(err) {
 		klog.Warningf("reading %s: %v; using defaults", ItzoURLFile, err)
+	} else if err != nil {
+		err = fmt.Errorf("reading %s: %v", ItzoURLFile, err)
+		klog.Errorf("%v", err)
+		return "", err
 	} else {
 		itzoURL = strings.TrimSpace(string(contents))
 	}
 	itzoVersion := ItzoDefaultVersion
 	contents, err = ioutil.ReadFile(ItzoVersionFile)
-	if err != nil && !os.IsNotExist(err) {
+	if err != nil && os.IsNotExist(err) {
 		klog.Warningf("reading %s: %v; using defaults", ItzoVersionFile, err)
+	} else if err != nil {
+		err = fmt.Errorf("reading %s: %v", ItzoVersionFile, err)
+		klog.Errorf("%v", err)
+		return "", err
 	} else {
 		itzoVersion = strings.TrimSpace(string(contents))
 	}
