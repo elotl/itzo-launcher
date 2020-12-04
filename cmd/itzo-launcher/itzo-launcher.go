@@ -3,6 +3,7 @@ package main
 import (
 	"flag"
 	"fmt"
+	"github.com/elotl/itzo-launcher/pkg/cloudinit"
 	"io/ioutil"
 	"os"
 	"os/exec"
@@ -12,7 +13,6 @@ import (
 	"syscall"
 
 	"github.com/elotl/itzo-launcher/pkg/addons"
-	"github.com/elotl/itzo-launcher/pkg/cloudinit"
 	"github.com/elotl/itzo-launcher/pkg/util"
 	"github.com/go-yaml/yaml"
 	"github.com/hashicorp/go-multierror"
@@ -99,6 +99,15 @@ func EnsureItzo() (string, error) {
 }
 
 func RunItzo(itzoPath string) error {
+	usePodman := false
+	config, err := readCellConfig()
+	if err != nil {
+		// ignore
+	}
+	klog.Info(config)
+	if _, ok := config["usePodman"]; ok {
+		usePodman = true
+	}
 	klog.V(2).Infof("starting itzo")
 	logfile, err := os.OpenFile(
 		LogDir+"/itzo.log", os.O_RDWR|os.O_APPEND|os.O_CREATE, 0600)
@@ -106,9 +115,14 @@ func RunItzo(itzoPath string) error {
 		return fmt.Errorf("opening itzo logfile: %v", err)
 	}
 	defer logfile.Close()
+
+	cmdArgs := []string{"--v=5"}
+	if usePodman {
+		cmdArgs = append(cmdArgs, "-use-podman=true")
+	}
 	cmd := exec.Command(
 		itzoPath,
-		"--v=5",
+		cmdArgs...,
 	)
 	cmd.Stdout = logfile
 	cmd.Stderr = logfile
@@ -121,17 +135,24 @@ func RunItzo(itzoPath string) error {
 	return nil
 }
 
-func RunAddons() error {
+func readCellConfig() (map[string]string, error) {
 	config := make(map[string]string)
 	contents, err := ioutil.ReadFile(CellConfigFile)
 	if err != nil {
 		klog.Warningf("reading %s: %v", CellConfigFile, err)
+		return config, err
 	} else {
 		err = yaml.Unmarshal(contents, &config)
 		if err != nil {
 			klog.Warningf("unmarshaling config %s: %v", contents, err)
+			return config, err
 		}
 	}
+	return config, nil
+}
+
+func RunAddons() error {
+	config, _ := readCellConfig()
 	var errs error
 	klog.Infof("found %d addon(s)", len(addons.Registry))
 	for name, addon := range addons.Registry {
@@ -186,7 +207,6 @@ func main() {
 	if err != nil {
 		klog.Fatalf("downloading itzo: %v", err)
 	}
-
 	err = RunItzo(itzoPath)
 	if err != nil {
 		klog.Fatalf("running %q: %v", itzoPath, err)
