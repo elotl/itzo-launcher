@@ -120,9 +120,9 @@ func RunItzo(itzoPath string) error {
 	}
 	defer logfile.Close()
 
-	cmdArgs := []string{"--v=5"}
+	cmdArgs := []string{"--v", "5"}
 	if usePodman {
-		cmdArgs = append(cmdArgs, "-use-podman=true")
+		cmdArgs = append(cmdArgs, "-use-podman", "true")
 	}
 	cmd := exec.Command(
 		itzoPath,
