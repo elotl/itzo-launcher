@@ -13,6 +13,7 @@ import (
 
 	"github.com/elotl/itzo-launcher/pkg/addons"
 	"github.com/elotl/itzo-launcher/pkg/cloudinit"
+	"github.com/elotl/itzo-launcher/pkg/parameters/aws"
 	"github.com/elotl/itzo-launcher/pkg/util"
 	"github.com/go-yaml/yaml"
 	"github.com/hashicorp/go-multierror"
@@ -20,14 +21,14 @@ import (
 )
 
 const (
-	LogDir             = "/var/log/itzo"
-	ItzoDir            = "/tmp/itzo"
-	ItzoDefaultPath    = "/usr/local/bin/itzo"
-	ItzoDefaultURL     = "https://itzo-kip-download.s3.amazonaws.com"
-	ItzoDefaultVersion = "latest"
-	ItzoURLFile        = ItzoDir + "/itzo_url"
-	ItzoVersionFile    = ItzoDir + "/itzo_version"
-	CellConfigFile     = ItzoDir + "/cell_config.yaml"
+	ItzoDir                   = "/tmp/itzo"
+	ItzoDefaultPath           = "/usr/local/bin/itzo"
+	ItzoDefaultURL            = "https://itzo-kip-download.s3.amazonaws.com"
+	ItzoDefaultVersion        = "latest"
+	ItzoURLFile               = ItzoDir + "/itzo_url"
+	ItzoVersionFile           = ItzoDir + "/itzo_version"
+	CellConfigFile            = ItzoDir + "/cell_config.yaml"
+	InstanceParameterBasePath = "/kip/cells"
 )
 
 var (
@@ -36,8 +37,36 @@ var (
 )
 
 var (
-	version = flag.Bool("version", false, "print version and exit")
+	version    = flag.Bool("version", false, "print version and exit")
+	itzoLogDir = flag.String("itzo-log-dir", "/var/log/itzo", "directory for itzo.log")
 )
+
+func ProcessInstanceParameters() error {
+	klog.V(2).Infof("checking instance parameters")
+	// For now, only AWS is supported. On other platforms we'll fall back to
+	// cloud-init user data.
+	params, err := aws.NewAWSParameters(InstanceParameterBasePath, nil)
+	if err != nil {
+		return err
+	}
+	allParameters, err := params.GetAllParameters()
+	if err != nil {
+		return fmt.Errorf("getting instance parameters: %v", err)
+	}
+	err = os.MkdirAll(ItzoDir, 0755)
+	if err != nil {
+		return fmt.Errorf("ensuring %s exists: %v", ItzoDir, err)
+	}
+	for name, value := range allParameters {
+		ppath := filepath.Join(ItzoDir, name)
+		err = ioutil.WriteFile(ppath, []byte(value), 0600)
+		if err != nil {
+			return fmt.Errorf("writing instance parameter %s to %s: %v", name, ppath, err)
+		}
+	}
+	klog.V(2).Infof("retrieved %d instance parameters", len(allParameters))
+	return nil
+}
 
 func ProcessUserData() error {
 	klog.V(2).Infof("getting itzo files from cloud-init")
@@ -98,20 +127,21 @@ func EnsureItzo() (string, error) {
 	return itzoPath, nil
 }
 
-func RunItzo(itzoPath string) error {
+func RunItzo(itzoPath, logDir string) error {
+	klog.V(2).Infof("starting itzo")
+
 	config, err := readCellConfig()
 	if err != nil {
 		klog.Warningf("cannot read cell config to get extra itzo flags: %v", err)
 	}
 	klog.V(5).Info(config)
-	klog.V(2).Infof("starting itzo")
+
 	logfile, err := os.OpenFile(
-		LogDir+"/itzo.log", os.O_RDWR|os.O_APPEND|os.O_CREATE, 0600)
+		logDir+"/itzo.log", os.O_RDWR|os.O_APPEND|os.O_CREATE, 0600)
 	if err != nil {
 		return fmt.Errorf("opening itzo logfile: %v", err)
 	}
 	defer logfile.Close()
-
 
 	// here we get itzo flags from cell_config.yaml
 	cmdArgs := util.GetItzoFlags(config)
@@ -126,6 +156,7 @@ func RunItzo(itzoPath string) error {
 	if err != nil {
 		return fmt.Errorf("running %v: %v", cmd, err)
 	}
+
 	klog.Warningf("%v exited", cmd)
 	return nil
 }
@@ -186,14 +217,18 @@ func main() {
 	signal.Notify(sig, syscall.SIGINT, syscall.SIGTERM)
 	go HandleSignal(sig)
 
-	err := os.MkdirAll(LogDir, 0755)
+	err := os.MkdirAll(*itzoLogDir, 0755)
 	if err != nil {
-		klog.Fatalf("ensuring %s exists: %v", LogDir, err)
+		klog.Fatalf("ensuring %s exists: %v", *itzoLogDir, err)
 	}
 
-	err = ProcessUserData()
+	err = ProcessInstanceParameters()
 	if err != nil {
-		klog.Fatalf("downloading cloud-init user data: %v", err)
+		klog.Warningf("failed to process instance parameters: %v, falling back to user-data", err)
+		err = ProcessUserData()
+		if err != nil {
+			klog.Fatalf("processing cloud-init user data: %v", err)
+		}
 	}
 
 	err = RunAddons()
@@ -205,7 +240,8 @@ func main() {
 	if err != nil {
 		klog.Fatalf("downloading itzo: %v", err)
 	}
-	err = RunItzo(itzoPath)
+
+	err = RunItzo(itzoPath, *itzoLogDir)
 	if err != nil {
 		klog.Fatalf("running %q: %v", itzoPath, err)
 	}
