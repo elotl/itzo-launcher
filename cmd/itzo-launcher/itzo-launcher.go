@@ -9,6 +9,7 @@ import (
 	"os/exec"
 	"os/signal"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"syscall"
 
@@ -105,8 +106,11 @@ func RunItzo(itzoPath string) error {
 		// ignore
 	}
 	klog.Info(config)
-	if _, ok := config["usePodman"]; ok {
-		usePodman = true
+	if usePodmanFlag, ok := config["usePodman"]; ok {
+		usePodman, err = strconv.ParseBool(usePodmanFlag)
+		if err != nil {
+			usePodman = false
+		}
 	}
 	klog.V(2).Infof("starting itzo")
 	logfile, err := os.OpenFile(
