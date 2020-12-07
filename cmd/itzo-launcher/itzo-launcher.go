@@ -3,7 +3,6 @@ package main
 import (
 	"flag"
 	"fmt"
-	"github.com/elotl/itzo-launcher/pkg/cloudinit"
 	"io/ioutil"
 	"os"
 	"os/exec"
@@ -14,6 +13,7 @@ import (
 	"syscall"
 
 	"github.com/elotl/itzo-launcher/pkg/addons"
+	"github.com/elotl/itzo-launcher/pkg/cloudinit"
 	"github.com/elotl/itzo-launcher/pkg/util"
 	"github.com/go-yaml/yaml"
 	"github.com/hashicorp/go-multierror"
