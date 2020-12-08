@@ -24,3 +24,22 @@ Itzo-launcher should be used via systemd or some other service manager. Example 
     WantedBy=multi-user.target
 
 Once an instance is started with itzo-launcher on it, itzo-launcher will check user-data, download the version of itzo requested via the usual itzo user-data files, and start itzo.
+
+
+## Passing flags to itzo from KIP
+
+All flags specified in `provider.yaml` section:
+```yaml
+cells:
+  cellConfig:
+    itzoFlag-use-podman: true
+```
+in format `itzoFlag<actual flag>: flag value` will be passed to itzo command.
+In example, if you specify:
+```yaml
+cells:
+  cellConfig:
+    itzoFlag-use-podman: true
+    itzoFlag-custom-port: 1234
+```
+launcher will run `itzo -use-podman true -custom-port 1234`

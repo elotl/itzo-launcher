@@ -8,7 +8,6 @@ import (
 	"os/exec"
 	"os/signal"
 	"path/filepath"
-	"strconv"
 	"strings"
 	"syscall"
 
@@ -100,18 +99,11 @@ func EnsureItzo() (string, error) {
 }
 
 func RunItzo(itzoPath string) error {
-	usePodman := false
 	config, err := readCellConfig()
 	if err != nil {
 		// ignore
 	}
 	klog.Info(config)
-	if usePodmanFlag, ok := config["usePodman"]; ok {
-		usePodman, err = strconv.ParseBool(usePodmanFlag)
-		if err != nil {
-			usePodman = false
-		}
-	}
 	klog.V(2).Infof("starting itzo")
 	logfile, err := os.OpenFile(
 		LogDir+"/itzo.log", os.O_RDWR|os.O_APPEND|os.O_CREATE, 0600)
@@ -121,9 +113,10 @@ func RunItzo(itzoPath string) error {
 	defer logfile.Close()
 
 	cmdArgs := []string{"--v", "5"}
-	if usePodman {
-		cmdArgs = append(cmdArgs, "-use-podman", "true")
-	}
+
+	// here we get itzo flags from cell_config.yaml
+	extraFlags := util.GetItzoFlags(config)
+	cmdArgs = append(cmdArgs, extraFlags...)
 	cmd := exec.Command(
 		itzoPath,
 		cmdArgs...,
