@@ -16,7 +16,7 @@ func TestGetItzoFlags(t *testing.T) {
 			config: map[string]string{
 				"dummy": "dummy",
 			},
-			expectedFlags: []string{},
+			expectedFlags: DefaultItzoFlags,
 		},
 		{
 			name: "itzo flags passed",
@@ -24,7 +24,7 @@ func TestGetItzoFlags(t *testing.T) {
 				"dummy":               "dummy",
 				"itzoFlag-use-podman": "true",
 			},
-			expectedFlags: []string{"-use-podman", "true"},
+			expectedFlags: []string{"-use-podman", "true", "--v", "5"}, // --v 5 are default Flags
 		},
 	}
 
