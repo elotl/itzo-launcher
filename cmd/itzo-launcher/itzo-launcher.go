@@ -99,6 +99,11 @@ func EnsureItzo() (string, error) {
 }
 
 func RunItzo(itzoPath string) error {
+	config, err := readCellConfig()
+	if err != nil {
+		klog.Warningf("cannot read cell config to get extra itzo flags: %v", err)
+	}
+	klog.V(5).Info(config)
 	klog.V(2).Infof("starting itzo")
 	logfile, err := os.OpenFile(
 		LogDir+"/itzo.log", os.O_RDWR|os.O_APPEND|os.O_CREATE, 0600)
@@ -106,9 +111,13 @@ func RunItzo(itzoPath string) error {
 		return fmt.Errorf("opening itzo logfile: %v", err)
 	}
 	defer logfile.Close()
+
+
+	// here we get itzo flags from cell_config.yaml
+	cmdArgs := util.GetItzoFlags(config)
 	cmd := exec.Command(
 		itzoPath,
-		"--v=5",
+		cmdArgs...,
 	)
 	cmd.Stdout = logfile
 	cmd.Stderr = logfile
@@ -121,16 +130,26 @@ func RunItzo(itzoPath string) error {
 	return nil
 }
 
-func RunAddons() error {
+func readCellConfig() (map[string]string, error) {
 	config := make(map[string]string)
 	contents, err := ioutil.ReadFile(CellConfigFile)
 	if err != nil {
 		klog.Warningf("reading %s: %v", CellConfigFile, err)
+		return nil, err
 	} else {
 		err = yaml.Unmarshal(contents, &config)
 		if err != nil {
 			klog.Warningf("unmarshaling config %s: %v", contents, err)
+			return nil, err
 		}
+	}
+	return config, nil
+}
+
+func RunAddons() error {
+	config, err := readCellConfig()
+	if err != nil {
+		config = map[string]string{}
 	}
 	var errs error
 	klog.Infof("found %d addon(s)", len(addons.Registry))
@@ -186,7 +205,6 @@ func main() {
 	if err != nil {
 		klog.Fatalf("downloading itzo: %v", err)
 	}
-
 	err = RunItzo(itzoPath)
 	if err != nil {
 		klog.Fatalf("running %q: %v", itzoPath, err)
