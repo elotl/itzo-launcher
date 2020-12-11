@@ -11,9 +11,10 @@ require (
 	github.com/hashicorp/go-multierror v1.1.0
 	github.com/niemeyer/pretty v0.0.0-20200227124842-a10e7caefd8e // indirect
 	github.com/stretchr/testify v1.5.1
+	github.com/tarm/goserial v0.0.0-20151007205400-b3440c3c6355 // indirect
 	golang.org/x/mod v0.0.0-20190513183733-4bf6d317e70e
 	golang.org/x/text v0.3.2 // indirect
 	gopkg.in/check.v1 v1.0.0-20200227125254-8fa46927fb4f // indirect
-	gopkg.in/yaml.v2 v2.3.0 // indirect
+	gopkg.in/yaml.v2 v2.3.0
 	k8s.io/klog v1.0.0
 )
