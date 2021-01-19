@@ -19,9 +19,9 @@
         <false/>
     </dict>                                                                                                 
     <key>StandardErrorPath</key>
-    <string>/usr/local/var/log/itzo-launcher.log</string>
+    <string>/var/log/itzo-launcher.log</string>
     <key>StandardOutPath</key>
-    <string>/usr/local/var/log/itzo-launcher.log</string>
+    <string>/var/log/itzo-launcher.log</string>
 </dict>
 </plist>
 
