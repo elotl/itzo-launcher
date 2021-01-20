@@ -28,7 +28,7 @@ const (
 	datasourceTimeout     = 5 * time.Minute
 )
 
-func WriteFiles(paths ...string) error {
+func WriteFiles(fileDir string, paths ...string) error {
 	dss := getDatasources()
 	if len(dss) == 0 {
 		return fmt.Errorf("no datasources configured")
@@ -64,6 +64,12 @@ func WriteFiles(paths ...string) error {
 		return err
 	}
 	if err := cc.Decode(); err != nil {
+		return err
+	}
+
+	// ensure directory which holds files exists before attempting write
+	err = os.MkdirAll(fileDir, os.ModeDir)
+	if err != nil {
 		return err
 	}
 

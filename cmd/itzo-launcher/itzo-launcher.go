@@ -70,11 +70,7 @@ func ProcessInstanceParameters() error {
 
 func ProcessUserData() error {
 	klog.V(2).Infof("getting itzo files from cloud-init")
-	err := os.MkdirAll(ItzoDir, os.ModeDir)
-	if err != nil {
-		return err
-	}
-	err = cloudinit.WriteFiles(ItzoURLFile, ItzoVersionFile, CellConfigFile)
+	err := cloudinit.WriteFiles(ItzoDir, ItzoURLFile, ItzoVersionFile, CellConfigFile)
 	if err != nil {
 		return err
 	}
