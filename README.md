@@ -23,6 +23,37 @@ Itzo-launcher should be used via systemd or some other service manager. Example 
     [Install]
     WantedBy=multi-user.target
 
+Launchctl via Launchd example plist file:
+
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">      
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.elotl.itzo-launcher</string>
+    <key>UserName</key>
+    <string>root</string>
+    <key>ProgramArguments</key>
+    <array>
+        <string>/usr/local/bin/itzo-launcher</string>
+        <string>--v=5</string>                                                                              
+    </array>
+    <key>RunAtLoad</key>                                                                                    
+    <true/>
+    <key>KeepAlive</key>                                                                                    
+    <dict>      
+        <key>SuccessfulExit</key>
+        <false/>
+    </dict>                                                                                                 
+    <key>StandardErrorPath</key>
+    <string>/var/log/itzo-launcher.log</string>
+    <key>StandardOutPath</key>
+    <string>/var/log/itzo-launcher.log</string>
+</dict>
+</plist>
+```
+
 Once an instance is started with itzo-launcher on it, itzo-launcher will check user-data, download the version of itzo requested via the usual itzo user-data files, and start itzo.
 
 
