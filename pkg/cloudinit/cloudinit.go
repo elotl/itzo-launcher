@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"path/filepath"
 	"strconv"
 	"sync"
 	"time"
@@ -28,7 +29,7 @@ const (
 	datasourceTimeout     = 5 * time.Minute
 )
 
-func WriteFiles(fileDir string, paths ...string) error {
+func WriteFiles(paths ...string) error {
 	dss := getDatasources()
 	if len(dss) == 0 {
 		return fmt.Errorf("no datasources configured")
@@ -67,14 +68,14 @@ func WriteFiles(fileDir string, paths ...string) error {
 		return err
 	}
 
-	// ensure directory which holds files exists before attempting write
-	err = os.MkdirAll(fileDir, os.ModeDir)
-	if err != nil {
-		return err
-	}
-
 	for _, wf := range cc.WriteFiles {
 		for _, p := range paths {
+			// ensure dir exists for all paths prior to write
+			fileDir := filepath.Dir(p)
+			err := os.MkdirAll(fileDir, os.ModeDir)
+			if err != nil {
+				return err
+			}
 			if wf.Path == p {
 				permStr := wf.RawFilePermissions
 				perm, err := strconv.ParseInt(permStr, 0, 32)
