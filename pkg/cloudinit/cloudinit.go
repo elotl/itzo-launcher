@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"path/filepath"
 	"strconv"
 	"sync"
 	"time"
@@ -69,6 +70,12 @@ func WriteFiles(paths ...string) error {
 
 	for _, wf := range cc.WriteFiles {
 		for _, p := range paths {
+			// ensure dir exists for all paths prior to write
+			fileDir := filepath.Dir(p)
+			err := os.MkdirAll(fileDir, os.ModeDir)
+			if err != nil {
+				return err
+			}
 			if wf.Path == p {
 				permStr := wf.RawFilePermissions
 				perm, err := strconv.ParseInt(permStr, 0, 32)
