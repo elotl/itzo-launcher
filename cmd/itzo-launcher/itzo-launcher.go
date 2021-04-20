@@ -8,6 +8,7 @@ import (
 	"os/exec"
 	"os/signal"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"syscall"
 
@@ -23,8 +24,6 @@ import (
 const (
 	ItzoDir                   = "/tmp/itzo"
 	ItzoDefaultPath           = "/usr/local/bin/itzo"
-	ItzoDefaultURL            = "https://itzo-kip-download.s3.amazonaws.com"
-	ItzoDefaultVersion        = "latest"
 	ItzoURLFile               = ItzoDir + "/itzo_url"
 	ItzoVersionFile           = ItzoDir + "/itzo_version"
 	CellConfigFile            = ItzoDir + "/cell_config.yaml"
@@ -39,7 +38,20 @@ var (
 var (
 	version    = flag.Bool("version", false, "print version and exit")
 	itzoLogDir = flag.String("itzo-log-dir", "/var/log/itzo", "directory for itzo.log")
+	ItzoDefaultURL = "https://itzo-kip-download.s3.amazonaws.com"
+	ItzoDefaultVersion = "latest"
 )
+
+func init()  {
+	switch runtime.GOARCH {
+	case "arm64":
+		ItzoDefaultURL = "https://itzo-kip-download.s3.amazonaws.com"
+		ItzoDefaultVersion = "arm-latest"
+	default:
+		ItzoDefaultURL = "https://itzo-kip-download.s3.amazonaws.com"
+		ItzoDefaultVersion = "latest"
+	}
+}
 
 func ProcessInstanceParameters() error {
 	klog.V(2).Infof("checking instance parameters")
