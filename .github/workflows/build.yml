@@ -34,7 +34,7 @@ jobs:
         prerelease: false
     - name: Upload amd64 release asset
       if: startsWith(github.event.ref, 'refs/tags/v')
-      id: upload-release-asset 
+      id: upload-release-amd64-asset
       uses: actions/upload-release-asset@v1
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -45,7 +45,7 @@ jobs:
         asset_content_type: application/octet-stream
     - name: Upload arm64 release asset
       if: startsWith(github.event.ref, 'refs/tags/v')
-      id: upload-release-asset
+      id: upload-release-arm64-asset
       uses: actions/upload-release-asset@v1
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
