@@ -8,6 +8,7 @@ import (
 	"os/exec"
 	"os/signal"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"syscall"
 
@@ -23,12 +24,13 @@ import (
 const (
 	ItzoDir                   = "/tmp/itzo"
 	ItzoDefaultPath           = "/usr/local/bin/itzo"
-	ItzoDefaultURL            = "https://itzo-kip-download.s3.amazonaws.com"
-	ItzoDefaultVersion        = "latest"
 	ItzoURLFile               = ItzoDir + "/itzo_url"
 	ItzoVersionFile           = ItzoDir + "/itzo_version"
 	CellConfigFile            = ItzoDir + "/cell_config.yaml"
 	InstanceParameterBasePath = "/kip/cells"
+	ItzoDefaultURL            = "https://itzo-kip-download.s3.amazonaws.com"
+	ItzoDefaultVersionAMD64   = "latest"
+	ItzoDefaultVersionARM64   = "arm-latest"
 )
 
 var (
@@ -40,6 +42,51 @@ var (
 	version    = flag.Bool("version", false, "print version and exit")
 	itzoLogDir = flag.String("itzo-log-dir", "/var/log/itzo", "directory for itzo.log")
 )
+
+func getItzoURL() (string, error) {
+	itzoURL := ItzoDefaultURL
+	contents, err := ioutil.ReadFile(ItzoURLFile)
+	if err != nil && os.IsNotExist(err) {
+		klog.Warningf("reading %s: %v; using defaults", ItzoURLFile, err)
+	} else if err != nil {
+		err = fmt.Errorf("reading %s: %v", ItzoURLFile, err)
+		klog.Errorf("%v", err)
+		return "", err
+	} else {
+		itzoURL = strings.TrimSpace(string(contents))
+	}
+	return itzoURL, nil
+}
+
+func getItzoDefaultVersion() string {
+	switch runtime.GOARCH {
+	case "arm64":
+		return ItzoDefaultVersionARM64
+	default:
+		return ItzoDefaultVersionAMD64
+	}
+}
+
+func getItzoVersion() (string, error) {
+	itzoVersion := getItzoDefaultVersion()
+	contents, err := ioutil.ReadFile(ItzoVersionFile)
+	if err != nil && os.IsNotExist(err) {
+		klog.Warningf("reading %s: %v; using defaults", ItzoVersionFile, err)
+	} else if err != nil {
+		err = fmt.Errorf("reading %s: %v", ItzoVersionFile, err)
+		klog.Errorf("%v", err)
+		return "", err
+	} else {
+		itzoVersion = strings.TrimSpace(string(contents))
+	}
+	if itzoVersion == "" {
+		// Set it to 0.0.0, so if itzo is already installed, it will be used,
+		// whatever version it is.
+		itzoVersion = "0.0.0"
+		klog.Warningf("empty itzo version, using %q", itzoVersion)
+	}
+	return itzoVersion, nil
+}
 
 func ProcessInstanceParameters() error {
 	klog.V(2).Infof("checking instance parameters")
@@ -80,37 +127,17 @@ func ProcessUserData() error {
 
 func EnsureItzo() (string, error) {
 	klog.V(2).Infof("downloading itzo")
-	itzoURL := ItzoDefaultURL
-	contents, err := ioutil.ReadFile(ItzoURLFile)
-	if err != nil && os.IsNotExist(err) {
-		klog.Warningf("reading %s: %v; using defaults", ItzoURLFile, err)
-	} else if err != nil {
-		err = fmt.Errorf("reading %s: %v", ItzoURLFile, err)
-		klog.Errorf("%v", err)
+	itzoURL, err := getItzoURL()
+	if err != nil {
 		return "", err
-	} else {
-		itzoURL = strings.TrimSpace(string(contents))
 	}
-	itzoVersion := ItzoDefaultVersion
-	contents, err = ioutil.ReadFile(ItzoVersionFile)
-	if err != nil && os.IsNotExist(err) {
-		klog.Warningf("reading %s: %v; using defaults", ItzoVersionFile, err)
-	} else if err != nil {
-		err = fmt.Errorf("reading %s: %v", ItzoVersionFile, err)
-		klog.Errorf("%v", err)
+	itzoVersion, err := getItzoVersion()
+	if err != nil {
 		return "", err
-	} else {
-		itzoVersion = strings.TrimSpace(string(contents))
-	}
-	if itzoVersion == "" {
-		// Set it to 0.0.0, so if itzo is already installed, it will be used,
-		// whatever version it is.
-		itzoVersion = "0.0.0"
-		klog.Warningf("empty itzo version, using %q", itzoVersion)
 	}
 	itzoDownloadURL := fmt.Sprintf("%s/itzo-%s", itzoURL, itzoVersion)
 	itzoPath := ItzoDefaultPath
-	if itzoVersion != ItzoDefaultVersion {
+	if itzoVersion != getItzoDefaultVersion() {
 		itzoPath, err = util.EnsureProg(ItzoDefaultPath, itzoDownloadURL, itzoVersion, "--version")
 		if err != nil {
 			klog.Errorf("ensuring itzo version %q: %v", itzoVersion, err)
